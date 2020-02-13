@@ -12,7 +12,7 @@ const val COL_NAME = "name"
 const val COL_AGE = "age"
 const val COL_ID = "id"
 
-class DataBaseHandler(var context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, 1) {
+class DataBaseHandler(private var context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, 1) {
     override fun onCreate(db: SQLiteDatabase?) {
 
         val createTable =
@@ -37,5 +37,53 @@ class DataBaseHandler(var context: Context) : SQLiteOpenHelper(context, DATABASE
         val result = db.insert(TABLE_NAME, null, cv)
         if (result == (-1).toLong()) Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show()
         else Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
+    }
+
+    fun readData(): MutableList<User> {
+        val list: MutableList<User> = ArrayList()
+
+        val db = this.readableDatabase
+        val query = "Select * from $TABLE_NAME"
+        val result = db.rawQuery(query, null)
+        if (result.moveToFirst()) {
+            do {
+                val user = User()
+                user.id = result.getString(result.getColumnIndex(COL_ID)).toInt()
+                user.name = result.getString(result.getColumnIndex(COL_NAME))
+                user.age = result.getString(result.getColumnIndex(COL_AGE)).toInt()
+                list.add(user)
+            } while (result.moveToNext())
+        }
+        result.close()
+        db.close()
+        return list
+    }
+
+    fun deleteData() {
+        val db = this.writableDatabase
+//        db.delete(TABLE_NAME, "$COL_ID =?", arrayOf(1.toString())) // delete last
+        db.delete(TABLE_NAME, null,null) // delete all
+        db.close()
+    }
+
+    fun updateDate() {
+        val db = this.writableDatabase
+        val query = "Select * from $TABLE_NAME"
+        val result = db.rawQuery(query, null)
+        if (result.moveToFirst()) {
+            do {
+                val cv = ContentValues()
+                cv.put(COL_AGE, (result.getInt(result.getColumnIndex(COL_AGE))+1))
+                db.update(
+                    TABLE_NAME, cv, "$COL_ID=? AND $COL_NAME=?",
+                    arrayOf(
+                        result.getString(result.getColumnIndex(COL_ID)),
+                        result.getString(result.getColumnIndex(COL_NAME))
+                    )
+                )
+            } while (result.moveToNext())
+        }
+        result.close()
+        db.close()
     }
 }
